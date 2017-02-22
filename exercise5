@@ -1,0 +1,50 @@
+package com.maiello1.week06;
+import java.util.*;
+
+class Contact {
+    private String name, email;
+
+    //right-click, generate constructor
+    public Contact(String name, String email) {
+        this.name = name;
+        this.email = email;
+    }
+//right-click, generate getters
+    public String getName() {
+        return name;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+}
+
+class AddressBook{
+    private List<Contact> contacts = new ArrayList<>();
+    public void add(Contact contact){
+        contacts.add(contact);
+    }
+    public String findEmail(String name){
+        for(Contact contact: contacts){
+            if (contact.getName().equals(name)){
+                return contact.getEmail();
+            }
+        }
+        return null;
+    }
+}
+
+public class Main {
+    public static void main(String [] args){
+     Contact Bob = new Contact("Bob", "bob@bob.com");
+                AddressBook addressBook = new AddressBook();
+        addressBook.add(Bob);
+
+        Contact Sue = new Contact("Sue", "sue@sue.com");
+        addressBook.add(Sue);
+
+        System.out.println(addressBook.findEmail("Bob"));
+        System.out.println(addressBook.findEmail("Sue"));
+
+    }
+}
