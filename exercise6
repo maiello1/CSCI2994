@@ -1,0 +1,57 @@
+package com.maiello1.week06;
+import java.util.*;
+
+class UserInput{
+    static Scanner scan = new Scanner(System.in);
+    static public int promptInt(String message){
+        System.out.println(message);
+        String userInput = scan.nextLine();
+
+        int userInt=0;
+        boolean isInt=false;
+        while (!isInt) {
+
+            try {
+                userInt = Integer.parseInt(userInput);
+                isInt = true;
+            } catch (NumberFormatException e) {
+                System.out.println(userInput + " is not a valid integer. " + message);
+                userInput = scan.nextLine();
+            }
+        }
+        return userInt;
+    }
+
+    static public double  promptDouble(String message){
+        System.out.println(message);
+        String userInput = scan.nextLine();
+        double userDouble=0;
+        boolean isDouble=false;
+        while (!isDouble) {
+
+            try {
+                userDouble = Double.parseDouble(userInput);
+                isDouble = true;
+            } catch (NumberFormatException e) {
+                System.out.println(userInput + " is not a valid double. " + message);
+                userInput = scan.nextLine();
+            }
+        }
+        return userDouble;
+    }
+
+
+static public String promptString(String message){
+        System.out.println(message);
+    String userInput = scan.nextLine();
+    return userInput;
+        }
+}
+
+public class Main {
+    public static void main(String [] args) {
+        System.out.println(UserInput.promptInt("Enter an integer"));
+        System.out.println(UserInput.promptInt("Enter a double"));
+        System.out.println(UserInput.promptInt("Enter a string"));
+    }
+}
