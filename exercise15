@@ -1,0 +1,197 @@
+import com.google.gson.Gson;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.methods.*;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.util.EntityUtils;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.Iterator;
+import java.util.List;
+
+class Task {
+    String body;
+    boolean done;
+    String uuid;
+    int priority;
+    String title;
+    String date;
+
+    public String toString() {
+        return title + ": " + body;
+    }
+}
+
+class TaskCollection implements Iterable<Task>{
+    // should be private; public for simplicity
+    List<Task> todos;
+
+    public Iterator<Task> iterator() {
+        return todos.iterator();
+    }
+}
+
+class HttpRequests {
+    private CloseableHttpClient client;
+
+    HttpRequests(String username, String password) {
+        CredentialsProvider credentials = new BasicCredentialsProvider();
+        credentials.setCredentials(AuthScope.ANY,
+                new UsernamePasswordCredentials(username, password));
+        client = HttpClientBuilder.create()
+                .setDefaultCredentialsProvider(credentials).build();
+    }
+
+    private String makeRequest(HttpRequestBase request) throws IOException {
+        CloseableHttpResponse response = client.execute(request);
+        try {
+            if (response.getStatusLine().getStatusCode() >= 200 && response.getStatusLine().getStatusCode() < 300) {
+                return EntityUtils.toString(response.getEntity());
+            }
+            else {
+                throw new IOException(response.getStatusLine().getStatusCode() + ": "
+                        + response.getStatusLine().getReasonPhrase());
+            }
+        }
+        finally {
+            response.close();
+        }
+    }
+
+    private void addData(HttpEntityEnclosingRequestBase request, String contentType,
+                         String data) throws IOException {
+        request.setHeader("Content-type", contentType);
+        StringEntity requestData = new StringEntity(data);
+        request.setEntity(requestData);
+    }
+
+    public String get(String url) throws IOException {
+        HttpGet request = new HttpGet(url);
+        return makeRequest(request);
+
+    }
+
+    public String delete(String url) throws IOException {
+        HttpDelete request = new HttpDelete(url);
+        return makeRequest(request);
+    }
+
+    public String post(String url, String contentType, String data) throws IOException {
+        HttpPost request = new HttpPost(url);
+        addData(request, contentType, data);
+        return makeRequest(request);
+    }
+
+    public String put(String url, String contentType, String data) throws IOException {
+        HttpPut request = new HttpPut(url);
+        addData(request, contentType, data);
+        return makeRequest(request);
+    }
+
+
+}
+
+
+class TodoAPIWrapper {
+    private Gson gson = new Gson();
+    private HttpRequests requests;
+    private String hostURL;
+
+    TodoAPIWrapper(String username, String password, String hostURL) {
+        requests = new HttpRequests(username, password);
+        this.hostURL = hostURL;
+    }
+
+    public TaskCollection getTasks() {
+        String url = hostURL + "/todos/api/v1.0/todos";
+        try {
+            String response = requests.get(url);
+            return gson.fromJson(response, TaskCollection.class);
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public Task createTask(String title, String body, int priority) {
+        Task newTask = new Task();
+        newTask.title = title;
+        newTask.body = body;
+        newTask.priority = priority;
+
+        String postData = gson.toJson(newTask);
+        String url = hostURL + "/todos/api/v1.0/todo/create";
+        try {
+            String response = requests.post(url, "application/json", postData);
+            return gson.fromJson(response, Task.class);
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+
+    }
+
+    public boolean remove(String id) {
+        String url = hostURL + "/todos/api/v1.0/todo/delete/" + id;
+        try {
+            requests.delete(url);
+            return true;
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public boolean update(Task updatedTask) {
+        if (updatedTask.uuid == null) {
+            return false;
+        }
+
+        String url = hostURL + "/todos/api/v1.0/todo/update/" + updatedTask.uuid;
+        String putData = gson.toJson(updatedTask);
+        try {
+            requests.put(url, "application/json", putData);
+            return true;
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+}
+
+public class Main {
+    public static void main(String[] args) {
+        TodoAPIWrapper wrapper = new TodoAPIWrapper("maiello1", "maiello1", "http://52.15.231.17:5000");
+        System.out.println("ADD A TASK");
+        Task newTask = wrapper.createTask("Homework", "Complete homework", 5);
+        System.out.println("LIST ALL TASKS");
+        TaskCollection tasks = wrapper.getTasks();
+        for (Task t: tasks) {
+            System.out.println(t);
+        }
+        System.out.println("UPDATE TASK");
+        newTask.body = "Turn in homework";
+        wrapper.update(newTask);
+        System.out.println("LIST ALL TASKS");
+        tasks = wrapper.getTasks();
+        for (Task t: tasks) {
+            System.out.println(t);
+        }
+
+
+    }
+}
